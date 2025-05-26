@@ -5,6 +5,137 @@
   --dark-bg: #1a1a2e;
   --darker-bg: #16213e;
 }
+/* Reset e responsividade básica */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #0e0e1a;
+  color: #fff;
+  padding: 1rem;
+}
+
+/* Container principal */
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Botões do topo */
+header {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+header button {
+  background-color: #292947;
+  color: #f5f5f5;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+/* Título e mensagem */
+.title {
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #ffe600;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #0ff;
+  margin-bottom: 1rem;
+}
+
+.message-box {
+  text-align: center;
+  background-color: #1f1f2e;
+  color: #fff700;
+  padding: 0.6rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+/* Ranking cards */
+.rank-card {
+  background: linear-gradient(145deg, #1e1e2d, #292947);
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+}
+
+.rank-info {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.rank-info img {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+}
+
+.rank-info .text {
+  display: flex;
+  flex-direction: column;
+}
+
+.rank-info .text .name {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.rank-info .text .points {
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.rank-icon {
+  font-size: 1.4rem;
+}
+
+/* Responsividade para celular */
+@media (max-width: 480px) {
+  .rank-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .rank-info {
+    flex-direction: column;
+  }
+
+  .rank-icon {
+    margin-top: 0.5rem;
+  }
+
+  header {
+    flex-direction: column;
+  }
+}
+
 
 body {
   margin: 0;
