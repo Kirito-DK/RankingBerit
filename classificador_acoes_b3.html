@@ -1,0 +1,546 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classificador de Ações — B3</title>
+
+<style>
+:root {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #172033;
+  background: #f4f6fa;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; padding: 24px; }
+
+.app { max-width: 1200px; margin: auto; }
+
+header { margin-bottom: 20px; }
+
+h1 {
+  margin: 0 0 6px;
+  font-size: clamp(25px, 4vw, 36px);
+}
+
+p { color: #5b6475; margin: 6px 0 14px; }
+
+.panel {
+  background: #fff;
+  border: 1px solid #e0e5ee;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 14px 0;
+  box-shadow: 0 4px 18px #1b2b4a0a;
+}
+
+label {
+  display: block;
+  font-weight: 650;
+  margin-bottom: 7px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 230px;
+  resize: vertical;
+  border: 1px solid #cbd3e1;
+  border-radius: 10px;
+  padding: 12px;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.field { min-width: 190px; flex: 1; }
+
+select, input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd3e1;
+  border-radius: 9px;
+  background: #fff;
+  font: inherit;
+}
+
+button {
+  border: 0;
+  border-radius: 9px;
+  padding: 11px 15px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #155eef;
+  color: white;
+}
+
+button.secondary {
+  background: #e9eef8;
+  color: #172033;
+}
+
+button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.status { font-size: 14px; margin-top: 10px; }
+.error { color: #b42318; }
+.success { color: #067647; }
+
+.table-wrap {
+  overflow: auto;
+  max-height: 65vh;
+  border: 1px solid #e0e5ee;
+  border-radius: 10px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+th, td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e9edf4;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: #f0f4fa;
+  z-index: 1;
+}
+
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+tbody tr:hover { background: #f7f9fc; }
+
+.muted { font-size: 12px; color: #687386; }
+
+.result-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pill {
+  display: inline-block;
+  background: #eef4ff;
+  color: #1849a9;
+  padding: 5px 9px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  body { padding: 12px; }
+  .panel { padding: 14px; }
+  .controls button { flex: 1; }
+}
+</style>
+</head>
+
+<body>
+<main class="app">
+
+<header>
+  <h1>Classificador de Ações — B3</h1>
+  <p>
+    Cole uma tabela e ordene do maior para o menor por participação,
+    quantidade teórica ou qualquer outra coluna. Os dados são
+    processados no seu navegador.
+  </p>
+</header>
+
+<section class="panel">
+  <label for="raw">1. Cole sua lista de dados</label>
+
+  <textarea id="raw" spellcheck="false"
+    placeholder="Código&#9;Ação&#9;Tipo&#9;Qtde. Teórica&#9;Part. (%)&#10;VALE3&#9;VALE&#9;ON NM&#9;3.687.404.862&#9;11,160&#10;ITUB4&#9;ITAUUNIBANCO&#9;PN EJ N1&#9;5.337.898.685&#9;8,614"></textarea>
+
+  <div class="muted">
+    Dica: copie diretamente do site ou do Excel.
+    O separador pode ser tabulação, ponto e vírgula ou vírgula.
+  </div>
+
+  <div class="controls">
+    <div class="field">
+      <label for="sortBy">2. Ordenar por</label>
+      <select id="sortBy">
+        <option value="4">Part. (%)</option>
+        <option value="3">Qtde. Teórica</option>
+        <option value="0">Código</option>
+        <option value="1">Ação</option>
+        <option value="2">Tipo</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="direction">Ordem</label>
+      <select id="direction">
+        <option value="desc">Maior → menor</option>
+        <option value="asc">Menor → maior</option>
+      </select>
+    </div>
+
+    <button id="run">Classificar lista</button>
+  </div>
+
+  <div id="status" class="status" role="status"></div>
+</section>
+
+<section class="panel">
+  <div class="result-head">
+    <div>
+      <h2 style="margin:0 0 5px">Resultado</h2>
+      <span id="count" class="pill">0 ações</span>
+    </div>
+
+    <div class="controls" style="margin:0">
+      <button id="copy" class="secondary" disabled>Copiar tabela</button>
+      <button id="csv15" disabled>CSV — 15 primeiras</button>
+      <button id="csv30" disabled>CSV — 30 primeiras</button>
+      <button id="csv" class="secondary" disabled>CSV completo</button>
+    </div>
+  </div>
+
+  <p class="muted">
+    Os arquivos CSV contêm somente os códigos dos ativos,
+    um por linha, sem cabeçalho.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead id="thead"></thead>
+      <tbody id="tbody">
+        <tr>
+          <td>Cole uma lista acima e clique em “Classificar lista”.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+
+<script>
+const raw = document.querySelector('#raw');
+const sortBy = document.querySelector('#sortBy');
+const direction = document.querySelector('#direction');
+
+const statusEl = document.querySelector('#status');
+const thead = document.querySelector('#thead');
+const tbody = document.querySelector('#tbody');
+const count = document.querySelector('#count');
+
+let headers = [];
+let rows = [];
+
+function parseNumber(s) {
+  let x = String(s ?? '').trim().replace(/\s/g, '');
+
+  if (!x) return NaN;
+
+  if (x.includes(',') && x.includes('.')) {
+    x = x.replace(/\./g, '').replace(',', '.');
+  } else if (x.includes(',')) {
+    x = x.replace(',', '.');
+  } else if ((x.match(/\./g) || []).length > 1) {
+    x = x.replace(/\./g, '');
+  }
+
+  return Number(x);
+}
+
+function parseTable(text) {
+  const lines = text.trim().split(/\r?\n/).filter(x => x.trim());
+
+  if (lines.length < 2) {
+    throw new Error(
+      'Cole o cabeçalho e pelo menos uma linha de dados.'
+    );
+  }
+
+  const first = lines[0];
+
+  const delimiter = first.includes('\t')
+    ? '\t'
+    : (first.includes(';') ? ';' : ',');
+
+  const split = line =>
+    line.split(delimiter).map(x =>
+      x.trim().replace(/^["']|["']$/g, '')
+    );
+
+  const h = split(lines[0]);
+
+  if (h.length === 1) {
+    throw new Error(
+      'Não consegui identificar as colunas. ' +
+      'Copie a tabela com tabulações entre as colunas.'
+    );
+  }
+
+  let data = lines.slice(1)
+    .map(split)
+    .filter(r => r.some(v => v !== ''));
+
+  data = data.map(r => {
+    while (r.length < h.length) r.push('');
+    return r.slice(0, h.length);
+  });
+
+  return { h, data };
+}
+
+function numericColumn(header) {
+  const s = header.toLocaleLowerCase('pt-BR');
+
+  return /qtde|quantidade|part\.|particip|peso|valor|preço|preco|volume|%/.test(s);
+}
+
+function classify() {
+  try {
+    const parsed = parseTable(raw.value);
+
+    headers = parsed.h;
+    rows = parsed.data;
+
+    const col = Number(sortBy.value);
+    const dir = direction.value === 'desc' ? -1 : 1;
+
+    if (col >= headers.length) {
+      throw new Error(
+        'A coluna selecionada não existe nesta lista. ' +
+        'Escolha outra coluna.'
+      );
+    }
+
+    const decorated = rows.map((r, i) => ({ r, i }));
+
+    decorated.sort((a, b) => {
+      const av = a.r[col] ?? '';
+      const bv = b.r[col] ?? '';
+
+      let cmp;
+
+      if (numericColumn(headers[col])) {
+        const an = parseNumber(av);
+        const bn = parseNumber(bv);
+
+        cmp =
+          Number.isNaN(an) && Number.isNaN(bn) ? 0 :
+          Number.isNaN(an) ? 1 :
+          Number.isNaN(bn) ? -1 :
+          an - bn;
+      } else {
+        cmp = av.localeCompare(
+          bv,
+          'pt-BR',
+          { numeric: true, sensitivity: 'base' }
+        );
+      }
+
+      return cmp === 0 ? a.i - b.i : cmp * dir;
+    });
+
+    rows = decorated.map(x => x.r);
+
+    render();
+
+    statusEl.className = 'status success';
+    statusEl.textContent = 'Lista classificada com sucesso.';
+
+  } catch (e) {
+    statusEl.className = 'status error';
+    statusEl.textContent = e.message;
+  }
+}
+
+function render() {
+  thead.innerHTML =
+    '<tr>' +
+    headers.map(h => '<th>' + escapeHtml(h) + '</th>').join('') +
+    '</tr>';
+
+  tbody.innerHTML = rows.map(r =>
+    '<tr>' +
+    r.map((v, i) =>
+      '<td class="' +
+      (numericColumn(headers[i]) ? 'num' : '') +
+      '">' + escapeHtml(v) + '</td>'
+    ).join('') +
+    '</tr>'
+  ).join('');
+
+  count.textContent =
+    rows.length + ' ' +
+    (rows.length === 1 ? 'linha' : 'linhas');
+
+  document.querySelector('#copy').disabled = !rows.length;
+  document.querySelector('#csv').disabled = !rows.length;
+  document.querySelector('#csv15').disabled = !rows.length;
+  document.querySelector('#csv30').disabled = !rows.length;
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]));
+}
+
+function tableText() {
+  return [headers, ...rows]
+    .map(r => r.map(v => String(v).replace(/\t/g, ' ')).join('\t'))
+    .join('\n');
+}
+
+document.querySelector('#run').addEventListener('click', classify);
+
+sortBy.addEventListener('change', () => {
+  if (rows.length) {
+    statusEl.textContent =
+      'Clique em “Classificar lista” para aplicar a nova coluna.';
+  }
+});
+
+direction.addEventListener('change', () => {
+  if (rows.length) {
+    statusEl.textContent =
+      'Clique em “Classificar lista” para aplicar a nova ordem.';
+  }
+});
+
+document.querySelector('#copy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(tableText());
+
+    statusEl.className = 'status success';
+    statusEl.textContent =
+      'Tabela copiada. Cole no Excel ou onde quiser.';
+
+  } catch (e) {
+    statusEl.className = 'status error';
+    statusEl.textContent =
+      'Não foi possível copiar automaticamente. ' +
+      'Se necessário, selecione e copie a tabela.';
+  }
+});
+
+/*
+ * EXPORTAÇÃO PARA LISTA DE ATIVOS
+ * Somente códigos, um por linha.
+ * Sem cabeçalho, aspas ou separadores de colunas.
+ */
+function downloadCsv(limit, filename) {
+  try {
+    const selected = limit
+      ? rows.slice(0, limit)
+      : rows;
+
+    function normalize(value) {
+      return String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+    }
+
+    const codeHeaders = [
+      'codigo',
+      'ticker',
+      'ativo',
+      'simbolo',
+      'papel',
+      'codigo do ativo',
+      'codigo de negociacao'
+    ];
+
+    const codeIndex = headers.findIndex(header =>
+      codeHeaders.includes(normalize(header))
+    );
+
+    if (codeIndex === -1) {
+      throw new Error(
+        'Não encontrei a coluna de códigos. ' +
+        'Verifique se o cabeçalho contém Código, Ticker ou Ativo.'
+      );
+    }
+
+    const codes = selected
+      .map(row => String(row[codeIndex] ?? '').trim())
+      .filter(code => code !== '')
+      .map(code => code.replace(/[\r\n]+/g, ''));
+
+    if (codes.length === 0) {
+      throw new Error('Não há códigos de ativos para exportar.');
+    }
+
+    // UTF-8 sem BOM: somente os códigos e as quebras de linha.
+    const content = codes.join('\r\n') + '\r\n';
+
+    const blob = new Blob([content], {
+      type: 'text/csv;charset=utf-8;'
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    statusEl.className = 'status success';
+    statusEl.textContent =
+      'Arquivo gerado: ' + filename +
+      ' (' + codes.length + ' códigos exportados).';
+
+  } catch (e) {
+    statusEl.className = 'status error';
+    statusEl.textContent = e.message;
+  }
+}
+
+document.querySelector('#csv15').addEventListener('click', () =>
+  downloadCsv(15, 'ranking-acoes-b3-top-15.csv')
+);
+
+document.querySelector('#csv30').addEventListener('click', () =>
+  downloadCsv(30, 'ranking-acoes-b3-top-30.csv')
+);
+
+document.querySelector('#csv').addEventListener('click', () =>
+  downloadCsv(null, 'ranking-acoes-b3-completo.csv')
+);
+</script>
+
+</body>
+</html>
